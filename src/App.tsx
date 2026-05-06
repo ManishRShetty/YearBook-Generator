@@ -18,6 +18,7 @@ interface LayoutData {
 export default function App() {
   const [images, setImages] = useState<HTMLImageElement[]>([]);
   const [layout, setLayout] = useState<LayoutData[]>([]);
+  const [uploadNote, setUploadNote] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Generate deterministic-ish layout based on images count
@@ -168,19 +169,30 @@ export default function App() {
     const files: File[] = Array.from(e.target.files);
     Promise.all(
       files.map((file) => {
-        return new Promise<HTMLImageElement>((resolve) => {
+        return new Promise<HTMLImageElement | null>((resolve) => {
           const reader = new FileReader();
           reader.onload = (ev) => {
             const img = new Image();
             img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
             img.src = ev.target?.result as string;
           };
+          reader.onerror = () => resolve(null);
           reader.readAsDataURL(file);
         });
       })
     ).then((loadedImages) => {
+      const validImages = loadedImages.filter((image): image is HTMLImageElement => image !== null);
+      const skippedCount = loadedImages.length - validImages.length;
+
+      if (skippedCount > 0) {
+        setUploadNote(`${skippedCount} file${skippedCount === 1 ? '' : 's'} could not be previewed in this browser, so they were skipped.`);
+      } else {
+        setUploadNote('');
+      }
+
       setImages((currentImages) => {
-        const nextImages = [...currentImages, ...loadedImages];
+        const nextImages = [...currentImages, ...validImages];
         generateLayout(nextImages);
         return nextImages;
       });
@@ -223,6 +235,7 @@ export default function App() {
                 <span className="text-xs text-neutral-500 mt-1">{images.length} images selected</span>
               </div>
             </div>
+            {uploadNote && <p className="text-xs text-amber-400 mt-1">{uploadNote}</p>}
           </div>
         </div>
 
