@@ -165,7 +165,7 @@ export default function App() {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
     
-    const files = Array.from(e.target.files);
+    const files: File[] = Array.from(e.target.files);
     Promise.all(
       files.map((file) => {
         return new Promise<HTMLImageElement>((resolve) => {
@@ -179,8 +179,12 @@ export default function App() {
         });
       })
     ).then((loadedImages) => {
-      setImages(loadedImages);
-      generateLayout(loadedImages);
+      setImages((currentImages) => {
+        const nextImages = [...currentImages, ...loadedImages];
+        generateLayout(nextImages);
+        return nextImages;
+      });
+      e.target.value = '';
     });
   };
 
@@ -237,14 +241,7 @@ export default function App() {
             ref={canvasRef}
             width={800}
             height={1000}
-            className="hidden md:block max-w-full max-h-[85vh] object-contain shadow-2xl shadow-black/80 rounded-sm"
-          />
-          {/* Mobile visible wrapper to ensure scaling works there too */}
-          <canvas
-             ref={canvasRef}
-             width={800}
-             height={1000}
-             className="md:hidden w-full h-auto object-contain shadow-2xl shadow-black/80 rounded-sm"
+            className="w-full max-w-full max-h-[85vh] object-contain shadow-2xl shadow-black/80 rounded-sm"
           />
           
           {images.length === 0 && (
