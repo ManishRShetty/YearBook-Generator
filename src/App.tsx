@@ -24,15 +24,24 @@ export default function App() {
   // Generate deterministic-ish layout based on images count
   const generateLayout = (loadedImages: HTMLImageElement[]) => {
     const newLayout: LayoutData[] = [];
+    if (loadedImages.length === 0) {
+      setLayout([]);
+      return;
+    }
     
-    // 25-30 polaroids in a scattered grid (5x5 or 5x6)
-    const targetCount = Math.max(25, loadedImages.length);
-    const cols = 5;
+    // Fill the poster densely; only duplicate when photo count is too low.
+    const minFillCount = 36;
+    const targetCount = Math.max(minFillCount, loadedImages.length);
+
+    const canvasW = 800;
+    const canvasH = 1000;
+    const aspect = canvasW / canvasH;
+    const cols = Math.max(6, Math.ceil(Math.sqrt(targetCount * aspect)));
     const rows = Math.ceil(targetCount / cols);
     const actualCount = cols * rows;
 
-    const cellW = 800 / cols;
-    const cellH = 1000 / rows;
+    const cellW = canvasW / cols;
+    const cellH = canvasH / rows;
 
     for (let i = 0; i < actualCount; i++) {
       const img = loadedImages[i % loadedImages.length];
@@ -48,15 +57,16 @@ export default function App() {
       const baseX = col * cellW + cellW / 2;
       const baseY = row * cellH + cellH / 2;
 
-      // Jitter offset more freely to encourage overlap
-      const px = baseX + (pseudoRandom(i + 1) * 1.0 - 0.5) * cellW;
-      const py = baseY + (pseudoRandom(i + 2) * 1.0 - 0.5) * cellH;
+      // Keep jitter moderate so we don't introduce visual gaps.
+      const px = baseX + (pseudoRandom(i + 1) * 0.45 - 0.225) * cellW;
+      const py = baseY + (pseudoRandom(i + 2) * 0.45 - 0.225) * cellH;
 
-      // Rotation -20 to 20 degrees
-      const finalRot = (pseudoRandom(i + 42) * 40 - 20) * (Math.PI / 180);
+      // Rotation -16 to 16 degrees for a collage look without opening holes.
+      const finalRot = (pseudoRandom(i + 42) * 32 - 16) * (Math.PI / 180);
 
-      // Width 160-200px
-      const width = 160 + (pseudoRandom(i + 13) * 40); 
+      // Slightly larger than cell width to ensure overlap and full coverage.
+      const baseWidth = cellW * 1.22;
+      const width = baseWidth * (0.9 + pseudoRandom(i + 13) * 0.2);
       const height = width * 1.25; // Polaroid ratio
 
       newLayout.push({ img, x: px, y: py, rotation: finalRot, width, height });
